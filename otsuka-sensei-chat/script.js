@@ -1299,7 +1299,8 @@ class OtsukaSenseiChat {
     startRoulette() {
         this.initializeCasino();
         this.currentGame = 'roulette';
-        this.rouletteSelectedBet = null;
+        this.rouletteSelectedBets = [];
+        this.rouletteBetAmount = 0;
         this.openGameModal('ルーレット');
         this.renderRoulette();
     }
@@ -1323,17 +1324,38 @@ class OtsukaSenseiChat {
                     <div class="roulette-bet-table">
                         <div class="roulette-bet-table-header">🎯 ベットテーブル 🎯</div>
                         <div class="roulette-numbers" id="roulette-numbers"></div>
-                        <div class="roulette-bets">
-                            <div class="roulette-bet" data-bet="red" onclick="otsukaSenseiChat.selectRouletteBet('red')">🔴 赤 (2倍)</div>
-                            <div class="roulette-bet" data-bet="black" onclick="otsukaSenseiChat.selectRouletteBet('black')">⚫ 黒 (2倍)</div>
-                            <div class="roulette-bet" data-bet="green" onclick="otsukaSenseiChat.selectRouletteBet('green')">🟢 緑 (14倍)</div>
+                        <div class="roulette-outside-bets">
+                            <div class="roulette-outside-row">
+                                <div class="roulette-bet outside" data-bet="0" onclick="otsukaSenseiChat.selectRouletteOutsideBet('0')">0</div>
+                                <div class="roulette-bet outside" data-bet="1st12" onclick="otsukaSenseiChat.selectRouletteOutsideBet('1st12')">1st 12<br>(3倍)</div>
+                                <div class="roulette-bet outside" data-bet="2nd12" onclick="otsukaSenseiChat.selectRouletteOutsideBet('2nd12')">2nd 12<br>(3倍)</div>
+                                <div class="roulette-bet outside" data-bet="3rd12" onclick="otsukaSenseiChat.selectRouletteOutsideBet('3rd12')">3rd 12<br>(3倍)</div>
+                            </div>
+                            <div class="roulette-outside-row">
+                                <div class="roulette-bet outside" data-bet="1-18" onclick="otsukaSenseiChat.selectRouletteOutsideBet('1-18')">1-18<br>(2倍)</div>
+                                <div class="roulette-bet outside" data-bet="even" onclick="otsukaSenseiChat.selectRouletteOutsideBet('even')">EVEN<br>(2倍)</div>
+                                <div class="roulette-bet outside" data-bet="red" onclick="otsukaSenseiChat.selectRouletteOutsideBet('red')">🔴 RED<br>(2倍)</div>
+                                <div class="roulette-bet outside" data-bet="black" onclick="otsukaSenseiChat.selectRouletteOutsideBet('black')">⚫ BLACK<br>(2倍)</div>
+                                <div class="roulette-bet outside" data-bet="odd" onclick="otsukaSenseiChat.selectRouletteOutsideBet('odd')">ODD<br>(2倍)</div>
+                                <div class="roulette-bet outside" data-bet="19-36" onclick="otsukaSenseiChat.selectRouletteOutsideBet('19-36')">19-36<br>(2倍)</div>
+                            </div>
+                            <div class="roulette-outside-row">
+                                <div class="roulette-bet outside" data-bet="col1" onclick="otsukaSenseiChat.selectRouletteOutsideBet('col1')">2 TO 1<br>1st COL<br>(3倍)</div>
+                                <div class="roulette-bet outside" data-bet="col2" onclick="otsukaSenseiChat.selectRouletteOutsideBet('col2')">2 TO 1<br>2nd COL<br>(3倍)</div>
+                                <div class="roulette-bet outside" data-bet="col3" onclick="otsukaSenseiChat.selectRouletteOutsideBet('col3')">2 TO 1<br>3rd COL<br>(3倍)</div>
+                            </div>
                         </div>
-                        <div class="roulette-bet-amount">
-                            <label>ベット額:</label>
-                            <input type="number" id="roulette-bet-amount" value="10" min="1" max="${this.casinoBalance}">
+                        <div class="roulette-bet-info">
+                            <div class="roulette-selected-bets" id="roulette-selected-bets">選択されたベット: なし</div>
+                            <div class="roulette-bet-amount">
+                                <label>ベット額:</label>
+                                <input type="number" id="roulette-bet-amount" value="10" min="1" max="${this.casinoBalance}">
+                            </div>
                         </div>
                         <div class="roulette-controls">
                             <button class="roulette-spin-btn" onclick="otsukaSenseiChat.spinRoulette()">🎲 スピン 🎲</button>
+                            <button class="roulette-clear-btn" onclick="otsukaSenseiChat.clearRouletteBets()">クリア</button>
+                            <button class="roulette-help-btn" onclick="otsukaSenseiChat.showRouletteHelp()">ヘルプ</button>
                             <button class="blackjack-btn" onclick="otsukaSenseiChat.closeGameModal()">終了</button>
                         </div>
                     </div>
@@ -1346,18 +1368,6 @@ class OtsukaSenseiChat {
     
     createRouletteNumbers() {
         const numbersContainer = document.getElementById('roulette-numbers');
-        const numbers = [];
-        
-        // 0を追加
-        numbers.push({ num: 0, color: 'green' });
-        
-        // 1-36を追加
-        for (let i = 1; i <= 36; i++) {
-            const color = this.getRouletteNumberColor(i);
-            numbers.push({ num: i, color: color });
-        }
-        
-        // 数字を配置（3行×12列 + 0）
         let html = '';
         
         // 0のセル
@@ -1366,15 +1376,121 @@ class OtsukaSenseiChat {
         // 1-36のセル（3行×12列）
         for (let row = 0; row < 3; row++) {
             for (let col = 0; col < 12; col++) {
-                const index = row * 12 + col + 1;
-                if (index <= 36) {
-                    const number = numbers[index];
-                    html += `<div class="roulette-number ${number.color}" onclick="otsukaSenseiChat.selectRouletteNumber(${number.num})">${number.num}</div>`;
+                const number = row * 12 + col + 1;
+                if (number <= 36) {
+                    const color = this.getRouletteNumberColor(number);
+                    html += `<div class="roulette-number ${color}" data-number="${number}" onclick="otsukaSenseiChat.selectRouletteNumber(${number})">${number}</div>`;
                 }
             }
         }
         
         numbersContainer.innerHTML = html;
+        
+        // インサイドベット用のイベントリスナーを追加
+        this.addInsideBetListeners();
+    }
+    
+    addInsideBetListeners() {
+        const numbersContainer = document.getElementById('roulette-numbers');
+        
+        // スプリットベット（2つの数字の境界線上）
+        numbersContainer.addEventListener('click', (e) => {
+            if (e.target.classList.contains('roulette-number')) {
+                const clickedNumber = parseInt(e.target.dataset.number);
+                const rect = e.target.getBoundingClientRect();
+                const clickX = e.clientX - rect.left;
+                const clickY = e.clientY - rect.top;
+                
+                // 境界線の判定
+                const width = rect.width;
+                const height = rect.height;
+                
+                // 右隣とのスプリット
+                if (clickX > width * 0.8 && clickedNumber % 3 !== 0) {
+                    const rightNumber = clickedNumber + 1;
+                    if (rightNumber <= 36) {
+                        this.addRouletteBet({
+                            type: 'split',
+                            numbers: [clickedNumber, rightNumber],
+                            multiplier: 18,
+                            description: `スプリット: ${clickedNumber}-${rightNumber} (18倍)`
+                        });
+                        return;
+                    }
+                }
+                
+                // 下隣とのスプリット
+                if (clickY > height * 0.8 && clickedNumber <= 24) {
+                    const bottomNumber = clickedNumber + 12;
+                    if (bottomNumber <= 36) {
+                        this.addRouletteBet({
+                            type: 'split',
+                            numbers: [clickedNumber, bottomNumber],
+                            multiplier: 18,
+                            description: `スプリット: ${clickedNumber}-${bottomNumber} (18倍)`
+                        });
+                        return;
+                    }
+                }
+                
+                // 0とのスプリット
+                if (clickedNumber === 1 && clickX < width * 0.2) {
+                    this.addRouletteBet({
+                        type: 'split',
+                        numbers: [0, 1],
+                        multiplier: 18,
+                        description: 'スプリット: 0-1 (18倍)'
+                    });
+                    return;
+                }
+            }
+        });
+        
+        // ストリートベット（3つの数字の境界線上）
+        numbersContainer.addEventListener('dblclick', (e) => {
+            if (e.target.classList.contains('roulette-number')) {
+                const clickedNumber = parseInt(e.target.dataset.number);
+                const row = Math.floor((clickedNumber - 1) / 12);
+                const col = (clickedNumber - 1) % 12;
+                
+                // 同じ行の3つの数字
+                const numbers = [row * 12 + 1, row * 12 + 2, row * 12 + 3];
+                if (col < 10) { // 最後の2列は除外
+                    this.addRouletteBet({
+                        type: 'street',
+                        numbers: numbers,
+                        multiplier: 12,
+                        description: `ストリート: ${numbers[0]}-${numbers[1]}-${numbers[2]} (12倍)`
+                    });
+                }
+            }
+        });
+        
+        // コーナーベット（4つの数字の角）
+        numbersContainer.addEventListener('contextmenu', (e) => {
+            e.preventDefault();
+            if (e.target.classList.contains('roulette-number')) {
+                const clickedNumber = parseInt(e.target.dataset.number);
+                const row = Math.floor((clickedNumber - 1) / 12);
+                const col = (clickedNumber - 1) % 12;
+                
+                // 4つの数字のコーナー
+                if (row < 2 && col < 11) {
+                    const numbers = [
+                        row * 12 + col + 1,
+                        row * 12 + col + 2,
+                        (row + 1) * 12 + col + 1,
+                        (row + 1) * 12 + col + 2
+                    ];
+                    this.addRouletteBet({
+                        type: 'corner',
+                        numbers: numbers,
+                        multiplier: 9,
+                        description: `コーナー: ${numbers[0]}-${numbers[1]}-${numbers[2]}-${numbers[3]} (9倍)`
+                    });
+                }
+            }
+        });
     }
     
     getRouletteNumberColor(number) {
@@ -1395,22 +1511,120 @@ class OtsukaSenseiChat {
             selectedElement.classList.add('selected');
         }
         
-        this.rouletteSelectedNumber = number;
+        // ストレートアップベット（36倍）
+        this.addRouletteBet({
+            type: 'straight',
+            number: number,
+            multiplier: 36,
+            description: `ストレートアップ: ${number} (36倍)`
+        });
     }
     
-    selectRouletteBet(betType) {
+    selectRouletteOutsideBet(betType) {
         // 既存の選択をクリア
-        document.querySelectorAll('.roulette-bet').forEach(bet => {
+        document.querySelectorAll('.roulette-bet.outside').forEach(bet => {
             bet.classList.remove('selected');
         });
         
         // 新しい選択をマーク
-        document.querySelector(`[data-bet="${betType}"]`).classList.add('selected');
-        this.rouletteSelectedBet = betType;
+        const selectedElement = document.querySelector(`[data-bet="${betType}"]`);
+        if (selectedElement) {
+            selectedElement.classList.add('selected');
+        }
+        
+        let betInfo;
+        switch(betType) {
+            case '0':
+                betInfo = { type: 'straight', number: 0, multiplier: 36, description: 'ストレートアップ: 0 (36倍)' };
+                break;
+            case '1st12':
+                betInfo = { type: 'dozen', range: [1, 12], multiplier: 3, description: '1st 12 (3倍)' };
+                break;
+            case '2nd12':
+                betInfo = { type: 'dozen', range: [13, 24], multiplier: 3, description: '2nd 12 (3倍)' };
+                break;
+            case '3rd12':
+                betInfo = { type: 'dozen', range: [25, 36], multiplier: 3, description: '3rd 12 (3倍)' };
+                break;
+            case 'col1':
+                betInfo = { type: 'column', column: 1, multiplier: 3, description: '1st Column (3倍)' };
+                break;
+            case 'col2':
+                betInfo = { type: 'column', column: 2, multiplier: 3, description: '2nd Column (3倍)' };
+                break;
+            case 'col3':
+                betInfo = { type: 'column', column: 3, multiplier: 3, description: '3rd Column (3倍)' };
+                break;
+            case 'red':
+                betInfo = { type: 'color', color: 'red', multiplier: 2, description: '🔴 RED (2倍)' };
+                break;
+            case 'black':
+                betInfo = { type: 'color', color: 'black', multiplier: 2, description: '⚫ BLACK (2倍)' };
+                break;
+            case 'even':
+                betInfo = { type: 'even', multiplier: 2, description: 'EVEN (2倍)' };
+                break;
+            case 'odd':
+                betInfo = { type: 'odd', multiplier: 2, description: 'ODD (2倍)' };
+                break;
+            case '1-18':
+                betInfo = { type: 'low', multiplier: 2, description: '1-18 (2倍)' };
+                break;
+            case '19-36':
+                betInfo = { type: 'high', multiplier: 2, description: '19-36 (2倍)' };
+                break;
+        }
+        
+        if (betInfo) {
+            this.addRouletteBet(betInfo);
+        }
+    }
+    
+    addRouletteBet(betInfo) {
+        // 既存の同じタイプのベットを削除
+        this.rouletteSelectedBets = this.rouletteSelectedBets.filter(bet => 
+            !(bet.type === betInfo.type && 
+              ((bet.type === 'straight' && bet.number === betInfo.number) ||
+               (bet.type === 'dozen' && bet.range[0] === betInfo.range[0]) ||
+               (bet.type === 'column' && bet.column === betInfo.column) ||
+               (bet.type === 'color' && bet.color === betInfo.color) ||
+               (bet.type === 'split' && bet.numbers && betInfo.numbers && 
+                bet.numbers.length === betInfo.numbers.length && 
+                bet.numbers.every(n => betInfo.numbers.includes(n))) ||
+               (bet.type === 'street' && bet.numbers && betInfo.numbers && 
+                bet.numbers.length === betInfo.numbers.length && 
+                bet.numbers.every(n => betInfo.numbers.includes(n))) ||
+               (bet.type === 'corner' && bet.numbers && betInfo.numbers && 
+                bet.numbers.length === betInfo.numbers.length && 
+                bet.numbers.every(n => betInfo.numbers.includes(n))) ||
+               (bet.type === betInfo.type && ['even', 'odd', 'low', 'high'].includes(betInfo.type))))
+        );
+        
+        // 新しいベットを追加
+        this.rouletteSelectedBets.push(betInfo);
+        this.updateRouletteBetDisplay();
+    }
+    
+    updateRouletteBetDisplay() {
+        const displayElement = document.getElementById('roulette-selected-bets');
+        if (this.rouletteSelectedBets.length === 0) {
+            displayElement.textContent = '選択されたベット: なし';
+        } else {
+            const betDescriptions = this.rouletteSelectedBets.map(bet => bet.description);
+            displayElement.textContent = `選択されたベット: ${betDescriptions.join(', ')}`;
+        }
+    }
+    
+    clearRouletteBets() {
+        this.rouletteSelectedBets = [];
+        document.querySelectorAll('.roulette-number, .roulette-bet.outside').forEach(element => {
+            element.classList.remove('selected');
+        });
+        this.updateRouletteBetDisplay();
     }
     
     spinRoulette() {
-        if (!this.rouletteSelectedBet && this.rouletteSelectedNumber === undefined) {
+        if (this.rouletteSelectedBets.length === 0) {
             alert('ベットを選択してください');
             return;
         }
@@ -1421,7 +1635,14 @@ class OtsukaSenseiChat {
             return;
         }
         
-        this.casinoBalance -= betAmount;
+        // 各ベットに同じ金額を賭ける
+        const totalBetAmount = betAmount * this.rouletteSelectedBets.length;
+        if (totalBetAmount > this.casinoBalance) {
+            alert('残高が不足しています');
+            return;
+        }
+        
+        this.casinoBalance -= totalBetAmount;
         this.updateCasinoBalance();
         
         // スピンボタンを無効化
@@ -1436,7 +1657,6 @@ class OtsukaSenseiChat {
         
         wheel.classList.add('spinning');
         ball.classList.add('spinning');
-        // 結果表示枠は回転させない
         
         setTimeout(() => {
             // ルーレット結果
@@ -1451,31 +1671,74 @@ class OtsukaSenseiChat {
             ball.classList.remove('spinning');
             
             // 勝敗判定
-            let winAmount = 0;
-            let message = '';
+            let totalWinAmount = 0;
+            let winningBets = [];
             
-            // 色ベットの判定
-            if (this.rouletteSelectedBet === resultColor) {
-                const multiplier = resultColor === 'green' ? 14 : 2;
-                winAmount = betAmount * multiplier;
-                message = `当たり！${multiplier}倍`;
-                this.addWinnerEffect();
-            }
-            // 数字ベットの判定
-            else if (this.rouletteSelectedNumber === result) {
-                winAmount = betAmount * 35; // 35倍
-                message = `当たり！35倍`;
-                this.addWinnerEffect();
-            } else {
-                message = 'はずれ...';
-            }
+            // 各ベットの判定
+            this.rouletteSelectedBets.forEach(bet => {
+                let isWin = false;
+                
+                switch(bet.type) {
+                    case 'straight':
+                        isWin = bet.number === result;
+                        break;
+                    case 'split':
+                        isWin = bet.numbers.includes(result);
+                        break;
+                    case 'street':
+                        isWin = bet.numbers.includes(result);
+                        break;
+                    case 'corner':
+                        isWin = bet.numbers.includes(result);
+                        break;
+                    case 'dozen':
+                        isWin = result >= bet.range[0] && result <= bet.range[1];
+                        break;
+                    case 'column':
+                        isWin = (result % 3 === bet.column) || (result === 0 && bet.column === 1);
+                        break;
+                    case 'color':
+                        isWin = this.getRouletteNumberColor(result) === bet.color;
+                        break;
+                    case 'even':
+                        isWin = result !== 0 && result % 2 === 0;
+                        break;
+                    case 'odd':
+                        isWin = result % 2 === 1;
+                        break;
+                    case 'low':
+                        isWin = result >= 1 && result <= 18;
+                        break;
+                    case 'high':
+                        isWin = result >= 19 && result <= 36;
+                        break;
+                }
+                
+                if (isWin) {
+                    const winAmount = betAmount * bet.multiplier;
+                    totalWinAmount += winAmount;
+                    winningBets.push(`${bet.description}: +${winAmount}`);
+                }
+            });
             
-            this.casinoBalance += winAmount;
+            this.casinoBalance += totalWinAmount;
             this.updateCasinoBalance();
             
+            // 結果表示
             const resultDiv = document.createElement('div');
-            resultDiv.className = `casino-result ${winAmount > 0 ? 'win' : 'lose'}`;
-            resultDiv.textContent = `${message} ${winAmount > 0 ? '+' + winAmount : ''}`;
+            resultDiv.className = `casino-result ${totalWinAmount > 0 ? 'win' : 'lose'}`;
+            
+            if (totalWinAmount > 0) {
+                resultDiv.innerHTML = `
+                    <div>🎉 当たり！ 🎉</div>
+                    <div>${winningBets.join('<br>')}</div>
+                    <div>合計: +${totalWinAmount}</div>
+                `;
+                this.addWinnerEffect();
+            } else {
+                resultDiv.textContent = 'はずれ...';
+            }
+            
             this.gameContent.querySelector('.casino-container').appendChild(resultDiv);
             
             // ボタンを再有効化
@@ -1483,19 +1746,59 @@ class OtsukaSenseiChat {
             spinBtn.textContent = '🎲 スピン 🎲';
             
             // 選択をリセット
-            this.rouletteSelectedBet = null;
-            this.rouletteSelectedNumber = undefined;
-            document.querySelectorAll('.roulette-bet').forEach(bet => {
-                bet.classList.remove('selected');
-            });
-            document.querySelectorAll('.roulette-number').forEach(num => {
-                num.classList.remove('selected');
-            });
+            this.clearRouletteBets();
             
             setTimeout(() => {
                 resultDiv.remove();
-            }, 3000);
+            }, 5000);
         }, 3000);
+    }
+    
+    showRouletteHelp() {
+        const helpContent = `
+            <div class="roulette-help">
+                <h3>🎲 ルーレットの賭け方 🎲</h3>
+                
+                <h4>📊 インサイドベット（数字エリア）</h4>
+                <ul>
+                    <li><strong>ストレートアップ（36倍）</strong>: 数字をクリックして1つの数字に賭ける</li>
+                    <li><strong>スプリット（18倍）</strong>: 2つの数字の境界線をクリックして隣り合う2つの数字に賭ける</li>
+                    <li><strong>ストリート（12倍）</strong>: 数字をダブルクリックして横一列の3つの数字に賭ける</li>
+                    <li><strong>コーナー（9倍）</strong>: 数字を右クリックして4つの数字の角に賭ける</li>
+                </ul>
+                
+                <h4>🎯 アウトサイドベット（外側エリア）</h4>
+                <ul>
+                    <li><strong>ダズン（3倍）</strong>: 1st 12, 2nd 12, 3rd 12で12個の数字に賭ける</li>
+                    <li><strong>コラム（3倍）</strong>: 1st COL, 2nd COL, 3rd COLで縦一列の12個の数字に賭ける</li>
+                    <li><strong>赤/黒（2倍）</strong>: 赤または黒の色に賭ける</li>
+                    <li><strong>偶数/奇数（2倍）</strong>: 偶数または奇数に賭ける</li>
+                    <li><strong>ハイ/ロー（2倍）</strong>: 1-18または19-36の範囲に賭ける</li>
+                </ul>
+                
+                <h4>💡 ヒント</h4>
+                <ul>
+                    <li>複数のベットを同時に選択できます</li>
+                    <li>各ベットに同じ金額が賭けられます</li>
+                    <li>「0」が出た場合、アウトサイドベットは全て負けになります</li>
+                    <li>ストレートアップは最高配当ですが、的中率は低いです</li>
+                </ul>
+                
+                <button class="roulette-help-close" onclick="otsukaSenseiChat.closeRouletteHelp()">閉じる</button>
+            </div>
+        `;
+        
+        const helpDiv = document.createElement('div');
+        helpDiv.className = 'roulette-help-overlay';
+        helpDiv.innerHTML = helpContent;
+        this.gameContent.appendChild(helpDiv);
+    }
+    
+    closeRouletteHelp() {
+        const helpOverlay = this.gameContent.querySelector('.roulette-help-overlay');
+        if (helpOverlay) {
+            helpOverlay.remove();
+        }
     }
 }
 
