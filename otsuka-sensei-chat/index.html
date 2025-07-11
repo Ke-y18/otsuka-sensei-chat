@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>O先生との会話</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>O先生との会話</h1>
+        </header>
+        
+        <main>
+            <div class="avatar-container">
+                <div class="avatar" id="avatar">
+                    <div class="avatar-face">
+                        <div class="dog-ears">
+                            <div class="dog-ear left-ear"></div>
+                            <div class="dog-ear right-ear"></div>
+                        </div>
+                        <div class="eyes">
+                            <div class="eye left-eye"></div>
+                            <div class="eye right-eye"></div>
+                        </div>
+                        <div class="dog-nose"></div>
+                        <div class="dog-mouth"></div>
+                    </div>
+                    <div class="avatar-hair"></div>
+                </div>
+                <div class="avatar-status" id="avatar-status">待機中...</div>
+            </div>
+            
+            <div class="chat-container">
+                <div class="game-buttons">
+                    <button class="game-btn" id="math-game-btn">計算ゲーム</button>
+                    <button class="game-btn" id="typing-game-btn">タイピングゲーム</button>
+                    <button class="game-btn" id="memory-game-btn">記憶ゲーム</button>
+                    <button class="game-btn" id="game2048-btn">2048ゲーム</button>
+                </div>
+                
+                <div class="casino-buttons">
+                    <button class="casino-btn" id="slot-machine-btn">スロットマシン</button>
+                    <button class="casino-btn" id="blackjack-btn">ブラックジャック</button>
+                    <button class="casino-btn" id="roulette-btn">ルーレット</button>
+                </div>
+                
+                <div class="chat-messages" id="chat-messages">
+                    <div class="message sensei-message">
+                        <div class="message-content">
+                            ご連絡いただきありがとうございます。O先生でございます。何かご質問やご相談がございましたら、お気軽にお聞かせください。また、学習の一環としてミニゲームもご用意しております。
+                        </div>
+                        <div class="message-time">今</div>
+                    </div>
+                </div>
+                
+                <div class="chat-input-container">
+                    <div class="input-wrapper">
+                        <input type="text" id="chat-input" placeholder="メッセージを入力してください..." maxlength="500">
+                        <button id="send-button" class="send-button">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <line x1="22" y1="2" x2="11" y2="13"></line>
+                                <polygon points="22,2 15,22 11,13 2,9"></polygon>
+                            </svg>
+                        </button>
+                    </div>
+                    <div class="input-info">
+                        <span id="char-count">0/500</span>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+    
+    <!-- ゲームモーダル -->
+    <div class="game-modal" id="game-modal">
+        <div class="game-modal-content">
+            <div class="game-modal-header">
+                <h2 class="game-modal-title" id="game-modal-title">ゲーム</h2>
+                <button class="game-modal-close" id="game-modal-close">&times;</button>
+            </div>
+            <div class="game-content" id="game-content">
+                <!-- ゲーム内容がここに動的に挿入されます -->
+            </div>
+        </div>
+    </div>
+    
+    <script src="script.js"></script>
+</body>
+</html> 
